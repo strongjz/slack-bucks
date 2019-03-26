@@ -1,59 +1,26 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"k8s.io/kubernetes/pkg/kubelet/kubeletconfig/util/log"
-	"net/http"
+	"github.com/strongjz/contino-bucks/cbuck"
+)
 
-	"github.com/nlopes/slack"
+var (
+	verificationToken string
+	oauthToken string
 )
 
 func main() {
-	var (
-		verificationToken string
-	)
 
 
 	flag.StringVar(&verificationToken, "token", "YOUR_VERIFICATION_TOKEN_HERE", "Your Slash Verification Token")
+	flag.StringVar(&oauthToken, "oauth", "Oauth token", "Your Oauth Verification Token")
 	flag.Parse()
-
 
 
 	fmt.Println("[INFO] Token Read as", verificationToken)
 
-	http.HandleFunc("/slash", func(w http.ResponseWriter, r *http.Request) {
-		s, err := slack.SlashCommandParse(r)
-		if err != nil {
-			log.Errorf("Error parsing slash command %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	cbuck.Start(verificationToken,oauthToken)
 
-		if !s.ValidateToken(verificationToken) {
-			fmt.Printf("Token unauthorized")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		switch s.Command {
-		case "/echo":
-			params := &slack.Msg{Text: s.Text}
-
-			b, err := json.Marshal(params)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(b)
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	})
-
-	fmt.Println("[INFO] Server listening")
-	http.ListenAndServe(":3000", nil)
 }
