@@ -10,11 +10,9 @@ import (
 
 var (
 	verificationToken string
-	oauthToken string
-	buf    bytes.Buffer
-	logger = log.New(&buf, "logger: ", log.LstdFlags)
-
-
+	oauthToken        string
+	buf               bytes.Buffer
+	logger            = log.New(&buf, "logger: ", log.LstdFlags)
 )
 
 func main() {
