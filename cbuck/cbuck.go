@@ -1,11 +1,13 @@
 package cbuck
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/nlopes/slack"
-	"k8s.io/kubernetes/pkg/kubelet/kubeletconfig/util/log"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,13 +17,14 @@ import (
 
 var (
 	moneyGifLink = "https://media.giphy.com/media/12Eo7WogCAoj84/giphy.gif"
-
+	buf    bytes.Buffer
+	logger = log.New(&buf, "logger: ", log.LstdFlags)
+	helpMSG = "Please try command again /cbuck give @USERNAME AMOUNT"
 )
 
 type Cbuck struct{
 	verificationToken string
 	oauthtoken string
-
 }
 
 func New(verificationToken string, oauthtoken string) *Cbuck {
@@ -37,41 +40,31 @@ func New(verificationToken string, oauthtoken string) *Cbuck {
 
 func (c *Cbuck) Start() {
 
+	logger.SetOutput(os.Stdout)
+
 	http.HandleFunc("/slash", func(w http.ResponseWriter, r *http.Request) {
 		s, err := slack.SlashCommandParse(r)
 		if err != nil {
-			log.Errorf("[ERROR] parsing slash command %s", err)
+			logger.Printf("[ERROR] parsing slash command %s", err)
+			returnHTTPMSG(helpMSG, w,http.StatusBadRequest)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if !s.ValidateToken(c.verificationToken) {
-			log.Errorf("[ERROR] Token unauthorized")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+			logger.Printf("[ERROR] Token unauthorized")
+			returnHTTPMSG("[ERROR] unauthorized", w,http.StatusForbidden)
+
 		}
 
-		log.Infof("[INFO] S: ", s)
+		logger.Printf("[INFO] S: %s", s)
 
 
 		switch s.Command {
 		case "/echo":
-			log.Infof("[INFO] Text %s\n", s.Text)
+			logger.Printf("[INFO] Text %s\n", s.Text)
+			returnHTTPMSG(fmt.Sprintf("%s from User %s", s.Text, s.UserName), w,http.StatusOK)
 
-			msg := fmt.Sprintf("%s from User %s", s.Text, s.UserName)
-
-			params := &slack.Msg{Text: msg}
-
-			b, err := json.Marshal(params)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			log.Infof("[INFO] B: %s\n",b)
-
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(b)
 		case "/cbuck":
 
 			c.cbuck(s,w)
@@ -79,16 +72,22 @@ func (c *Cbuck) Start() {
 
 		default:
 			fmt.Println("Default case / was hit")
-			w.WriteHeader(http.StatusInternalServerError)
+			returnHTTPMSG(helpMSG, w, http.StatusBadRequest)
 			return
 		}
 	})
 
-	fmt.Println("[INFO] Server listening")
-	http.ListenAndServe(":3000", nil)
-}
+	logger.Printf("[INFO] Server listening")
 
-func (c *Cbuck) cbuck(s slack.SlashCommand ,w http.ResponseWriter ) {
+	err := http.ListenAndServe(":3000", nil)
+
+	if err != nil {
+		logger.Fatalf("[ERROR] Starting HTTP Service %s", err)
+	}
+
+	}
+
+func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 
 	//needs the bot oauth
 
@@ -96,51 +95,44 @@ func (c *Cbuck) cbuck(s slack.SlashCommand ,w http.ResponseWriter ) {
 
 	_, err := api.AuthTest()
 	if err != nil {
-		log.Errorf("[ERROR] Auth Error: %s", err.Error())
+		logger.Printf("[ERROR] Auth Error: %s", err.Error())
+
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
+	//give who amount
 	text := s.Text
+	logger.Printf("[INFO] Received Text: %s\n", text)
 
+	//GIVER
+	giverUser := s.UserName
 
-	log.Infof("[INFO] Received Text: %s\n", text)
 
 	give, err := regexp.MatchString(`^(give)`, text)
-
-	log.Infof("[INFO] Give Match: %t Err: %s\n",give, err)
-
 	if err != nil {
-		log.Errorf("[ERROR] on regex match: %s\n", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+
+		logger.Printf("[ERROR] on Give match: %s\n", err.Error())
+		returnHTTPMSG("Not wanting to give Contino Bucks?",w,http.StatusBadRequest)
+
 		return
 	}
-
-	receiverMatch := regexp.MustCompile(`<@\w+\|.+>`)
-	amountMatch := regexp.MustCompile(`>\s\d+`)
 
 
 	//get user cbuck is for
 	var receiverID string
+	var receiverInfo *slack.User
+	receiverMatch := regexp.MustCompile(`<@\w+\|.+>`)
 
 	//how much are they getting
 	var amount int
 
+
+
 	if give {
 
+		//RECEIVER
 		receiverID = receiverMatch.FindString(text)
-
-		amountStr := amountMatch.FindString(text)
-		amountStr = strings.TrimPrefix(amountStr, "> ")
-
-		log.Infof("[INFO] Amount String Match: %s\n", amountStr)
-
-		amount, err = strconv.Atoi(amountStr)
-		if err != nil {
-			log.Errorf("[ERROR] String to int conversion on amount %s\n", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 
 		//look up receivers ID not username
 		//<@UH5RMGCF2|james.strong> ID comes in that form
@@ -148,60 +140,41 @@ func (c *Cbuck) cbuck(s slack.SlashCommand ,w http.ResponseWriter ) {
 		receiverIDArray := strings.Split(receiverID, "|")
 		receiverID = receiverIDArray[0]
 
-		log.Infof("[INFO] Reciver ID : %s\n", receiverID)
+		//Get all the RECEIVERS information
+		receiverInfo, err = api.GetUserInfo(receiverID)
+		if err != nil {
+			logger.Printf("[ERROR] User %s can not be found\n", receiverID)
+			msg := fmt.Sprintf("Could not found user %s\n%s",receiverID,helpMSG)
+			returnHTTPMSG(msg,w,http.StatusBadRequest)
+			return
+		}
 
-		log.Infof("[INFO] Amount: %d\n", amount)
+		//AMOUNT
+		amount,err = findAmount(text)
+		if err != nil{
+			msg := fmt.Sprintf("Please try again there was an error with the Amount \n%s",helpMSG)
+			returnHTTPMSG(msg,w,http.StatusBadRequest)
+		}
 
+
+		logger.Printf("[INFO] Reciver ID : %s\n", receiverID)
+		logger.Printf("[INFO] Amount: %d\n", amount)
 
 	}else{
-		log.Errorf("[ERROR] Not giving so no idea what there doing\n")
-
-		w.Header().Set("Content-Type", "application/json")
-		params := &slack.Msg{Text: "Please try command again /cbuck give @USERNAME $AMOUNT"}
-
-		b, err := json.Marshal(params)
-		if err != nil {
-			log.Errorf("[ERROR] Marshalling message: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(b)
+		logger.Printf("[ERROR] Not giving so no idea what there doing\n")
+		returnHTTPMSG(helpMSG,w,http.StatusBadRequest)
 		return
 	}
 
-	//get user giving cbucks
-	giverUser := s.UserName
 
-
-	log.Infof("[INFO] Getting Reciver user info: %s\n", receiverID)
-
-	receiverInfo, err := api.GetUserInfo(receiverID)
-	if err != nil {
-
-		log.Errorf("[ERROR] User %s can not be found\n", receiverID)
-
-		w.Header().Set("Content-Type", "application/json")
-
-		params := &slack.Msg{Text: fmt.Sprintf("User %s can not be found", receiverID)}
-
-		b, err := json.Marshal(params)
-		if err != nil {
-			log.Infof("[ERROR] Marshalling message: %s\n", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Write(b)
-		return
-	}
-
-	log.Infof("[INFO] ID: %s, Fullname: %s, Email: %s\n", receiverInfo.ID, receiverInfo.Profile.RealName, receiverInfo.Profile.Email)
+	logger.Printf("[INFO] Getting Reciver user info: %s\n", receiverID)
+	logger.Printf("[INFO] ID: %s, Fullname: %s, Email: %s\n", receiverInfo.ID, receiverInfo.Profile.RealName, receiverInfo.Profile.Email)
 
 	returnMsg := fmt.Sprintf("%s gave you %d Contino Bucks\n %s",giverUser,amount, moneyGifLink)
 
-	err = c.sendMsg(receiverInfo.ID,returnMsg)
+	err = c.sendSlackIM(receiverInfo.ID,returnMsg)
 	if err != nil {
-		log.Errorf("[ERROR] Sending %s Message: %s\n", receiverInfo.Profile.RealName, err.Error())
+		logger.Printf("[ERROR] Sending %s Message: %s\n", receiverInfo.Profile.RealName, err.Error())
 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -209,27 +182,62 @@ func (c *Cbuck) cbuck(s slack.SlashCommand ,w http.ResponseWriter ) {
 
 	}
 
+func findAmount(text string) (int, error) {
 
-func (c *Cbuck) sendMsg(userID string, message string) error {
+	amountMatch := regexp.MustCompile(`>\s\d+`)
+	amountStr := amountMatch.FindString(text)
+	amountStr = strings.TrimPrefix(amountStr, "> ")
+
+	logger.Printf("[INFO] Amount String Match: %s\n", amountStr)
+
+	amount, err := strconv.Atoi(amountStr)
+
+	if err != nil {
+		logger.Printf("[ERROR] String to int conversion on amount %s\n", err.Error())
+		return -1, err
+	}
+	return amount, nil
+}
+func (c *Cbuck) sendSlackIM(userID string, message string) error {
 
 	api := slack.New(c.oauthtoken)
 
 	//let them know they got cbucks from someone
 	_, _, channelID, err := api.OpenIMChannel(userID)
 	if err != nil {
-		log.Errorf("[ERROR] Sending %s Message: %s\n", userID, err)
+		logger.Printf("[ERROR] Sending %s Message: %s\n", userID, err)
 
 		return err
 	}
 
-	log.Infof("[INFO] %s", message)
+	logger.Printf("[INFO] %s", message)
 
 	_, _, err = api.PostMessage(channelID, slack.MsgOptionText(message, false))
 	if err != nil{
-		log.Errorf("[ERROR] Sending Message: %s\n", err)
+		logger.Printf("[ERROR] Sending Message: %s\n", err)
 
 		return err
 	}
 
 	return nil
+}
+
+func returnHTTPMSG(msg string,w http.ResponseWriter, status int)  {
+
+
+	params := &slack.Msg{Text: msg}
+
+	b, err := json.Marshal(params)
+	if err != nil {
+		logger.Printf("[ERROR] Marshalling Slack return message %s", msg)
+		w.WriteHeader(status)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+
+	return
+
 }
