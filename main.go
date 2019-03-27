@@ -20,7 +20,7 @@ func main() {
 
 	fmt.Println("[INFO] Token Read as", verificationToken)
 
-	c := cbuck.NewCbuck(verificationToken, oauthToken)
+	c := cbuck.New(verificationToken, oauthToken)
 
 	c.Start()
 
