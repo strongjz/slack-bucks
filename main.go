@@ -18,9 +18,10 @@ func main() {
 	flag.StringVar(&oauthToken, "oauth", "Oauth token", "Your Oauth Verification Token")
 	flag.Parse()
 
-
 	fmt.Println("[INFO] Token Read as", verificationToken)
 
-	cbuck.Start(verificationToken,oauthToken)
+	c := cbuck.NewCbuck(verificationToken, oauthToken)
+
+	c.Start()
 
 }

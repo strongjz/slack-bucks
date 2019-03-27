@@ -13,8 +13,29 @@ import (
 
 
 
-func Start(verificationToken string, oauthToken string) {
+var (
+	moneyGifLink = "https://media.giphy.com/media/12Eo7WogCAoj84/giphy.gif"
 
+)
+
+type Cbuck struct{
+	verificationToken string
+	oauthtoken string
+
+}
+
+func NewCbuck(verificationToken string, oauthtoken string) *Cbuck {
+
+	c := new(Cbuck)
+	c.verificationToken = verificationToken
+	c.oauthtoken = oauthtoken
+
+	return c
+
+
+}
+
+func (c *Cbuck) Start() {
 
 	http.HandleFunc("/slash", func(w http.ResponseWriter, r *http.Request) {
 		s, err := slack.SlashCommandParse(r)
@@ -24,7 +45,7 @@ func Start(verificationToken string, oauthToken string) {
 			return
 		}
 
-		if !s.ValidateToken(verificationToken) {
+		if !s.ValidateToken(c.verificationToken) {
 			fmt.Printf("[ERROR] Token unauthorized")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -52,8 +73,8 @@ func Start(verificationToken string, oauthToken string) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(b)
 		case "/cbuck":
-			cbuck(s, oauthToken,w)
 
+			c.cbuck(s,w)
 		case "/":
 
 		default:
@@ -67,10 +88,11 @@ func Start(verificationToken string, oauthToken string) {
 	http.ListenAndServe(":3000", nil)
 }
 
-func cbuck(s slack.SlashCommand,oauthToken string,w http.ResponseWriter ){
+func (c *Cbuck) cbuck(s slack.SlashCommand ,w http.ResponseWriter ) {
 
 	//needs the bot oauth
-	api := slack.New(oauthToken)
+
+	api := slack.New(c.oauthtoken)
 
 	_, err := api.AuthTest()
 	if err != nil {
@@ -81,9 +103,10 @@ func cbuck(s slack.SlashCommand,oauthToken string,w http.ResponseWriter ){
 
 	text := s.Text
 
+
 	fmt.Printf("[INFO] Received Text: %s\n", text)
 
-	give, err := regexp.MatchString(`(give) <@.+> \d+`, text)
+	give, err := regexp.MatchString(`^(give)`, text)
 
 	fmt.Printf("[INFO] Give Match: %t Err: %s\n",give, err)
 
@@ -93,37 +116,40 @@ func cbuck(s slack.SlashCommand,oauthToken string,w http.ResponseWriter ){
 		return
 	}
 
-	receiverMatch := regexp.MustCompile(`<@\w+|\w.\w+>`)
-	amountMatch := regexp.MustCompile(`\d+`)
+	receiverMatch := regexp.MustCompile(`<@\w+\|.+>`)
+	amountMatch := regexp.MustCompile(`>\s\d+`)
+
 
 	//get user cbuck is for
 	var receiverID string
 
 	//how much are they getting
-	var amount int64
+	var amount int
 
 	if give {
 
 		receiverID = receiverMatch.FindString(text)
 
 		amountStr := amountMatch.FindString(text)
+		amountStr = strings.TrimPrefix(amountStr, "> ")
 
-		fmt.Printf("[INFO] Amount String %s\n", amountStr)
+		fmt.Printf("[INFO] Amount String Match: %s\n", amountStr)
 
-		amount, err := strconv.Atoi(amountStr)
+		amount, err = strconv.Atoi(amountStr)
 		if err != nil {
 			fmt.Printf("[ERROR] String to int conversion on amount %s\n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		//look receivers ID not username
+		//look up receivers ID not username
 		//<@UH5RMGCF2|james.strong> ID comes in that form
 		receiverID = strings.TrimPrefix(receiverID, "<@")
 		receiverIDArray := strings.Split(receiverID, "|")
 		receiverID = receiverIDArray[0]
 
-		fmt.Printf("[INFO] Reciver: %s\n", receiverID)
+		fmt.Printf("[INFO] Reciver ID : %s\n", receiverID)
+
 		fmt.Printf("[INFO] Amount: %d\n", amount)
 
 
@@ -148,9 +174,9 @@ func cbuck(s slack.SlashCommand,oauthToken string,w http.ResponseWriter ){
 	giverUser := s.UserName
 
 
-	fmt.Printf("[INFO] Getting user info: %s\n", receiverID)
+	fmt.Printf("[INFO] Getting Reciver user info: %s\n", receiverID)
 
-	user, err := api.GetUserInfo(receiverID)
+	receiverInfo, err := api.GetUserInfo(receiverID)
 	if err != nil {
 
 		fmt.Printf("[ERROR] User %s can not be found\n", receiverID)
@@ -169,23 +195,41 @@ func cbuck(s slack.SlashCommand,oauthToken string,w http.ResponseWriter ){
 		return
 	}
 
-	fmt.Printf("ID: %s, Fullname: %s, Email: %s\n", user.ID, user.Profile.RealName, user.Profile.Email)
+	fmt.Printf("[INFO] ID: %s, Fullname: %s, Email: %s\n", receiverInfo.ID, receiverInfo.Profile.RealName, receiverInfo.Profile.Email)
+
+	returnMsg := fmt.Sprintf("%s gave you %d Contino Bucks\n %s",giverUser,amount, moneyGifLink)
+
+	err = c.sendMsg(receiverInfo.ID,returnMsg)
+	if err != nil {
+		fmt.Printf("[ERROR] Sending %s Message: %s\n", receiverInfo.Profile.RealName, err.Error())
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	}
+
+
+func (c *Cbuck) sendMsg(userID string, message string) error {
+
+	api := slack.New(c.oauthtoken)
 
 	//let them know they got cbucks from someone
-	_, _, channelID, err := api.OpenIMChannel(user.ID)
+	_, _, channelID, err := api.OpenIMChannel(userID)
 	if err != nil {
-		fmt.Printf("[ERROR] Sending %s Message: %s\n", user.Profile.RealName, err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		fmt.Printf("[ERROR] Sending %s Message: %s\n", userID, err)
+
+		return err
 	}
 
-	returnMsg := fmt.Sprintf("%s Gave you %d Contino Bucks\n",giverUser,amount)
+	fmt.Printf("[INFO] %s", message)
 
-	_, _, err = api.PostMessage(channelID, slack.MsgOptionText(returnMsg, false))
+	_, _, err = api.PostMessage(channelID, slack.MsgOptionText(message, false))
 	if err != nil{
-		fmt.Printf("[ERROR] Sending %s Message: %s\n", user.Profile.RealName, err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		fmt.Printf("[ERROR] Sending Message: %s\n", err)
+
+		return err
 	}
 
-	}
+	return nil
+}
