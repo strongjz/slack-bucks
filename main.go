@@ -11,7 +11,9 @@ import (
 var (
 	verificationToken string
 	oauthToken        string
+	dynamodb  string
 	buf               bytes.Buffer
+	debug    bool
 	logger            = log.New(&buf, "logger: ", log.LstdFlags)
 )
 
@@ -21,12 +23,16 @@ func main() {
 
 	flag.StringVar(&verificationToken, "token", "YOUR_VERIFICATION_TOKEN_HERE", "Your Slash Verification Token")
 	flag.StringVar(&oauthToken, "oauth", "Oauth token", "Your Oauth Verification Token")
+	flag.StringVar(&dynamodb, "dynamodb", "dynamodb", "dynamodb Endpoint")
+	flag.BoolVar(&debug, "debug", false, "Show JSON output")
+
 	flag.Parse()
 
-	logger.Printf("[INFO] Verification Token: %s", verificationToken)
-	logger.Printf("[INFO] OAUTH Token: %s", oauthToken)
-	c := cbuck.New(verificationToken, oauthToken)
+	if debug {logger.Printf("[INFO] Verification Token: %s", verificationToken)}
+	if debug {logger.Printf("[INFO] OAUTH Token: %s", oauthToken)}
 
-	c.Start()
+	c := cbuck.New(dynamodb,verificationToken, oauthToken)
+
+	c.Start(debug)
 
 }

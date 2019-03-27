@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/nlopes/slack"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -17,6 +18,8 @@ import (
 
 var (
 	moneyGifLink = "https://media.giphy.com/media/12Eo7WogCAoj84/giphy.gif"
+	selfishGif = "https://media.giphy.com/media/mXVpbjG2qmC2Y/giphy.gif"
+	thumbsDownGif = "https://media.giphy.com/media/9NEH2NjjMA4hi/giphy.gif"
 	buf    bytes.Buffer
 	logger = log.New(&buf, "logger: ", log.LstdFlags)
 	helpMSG = "Please try command again /cbuck give @USERNAME AMOUNT"
@@ -25,20 +28,22 @@ var (
 type Cbuck struct{
 	verificationToken string
 	oauthtoken string
-}
-
-func New(verificationToken string, oauthtoken string) *Cbuck {
-
-	c := new(Cbuck)
-	c.verificationToken = verificationToken
-	c.oauthtoken = oauthtoken
-
-	return c
-
+	dynamodbEndpoint string
+	api *slack.Client
 
 }
 
-func (c *Cbuck) Start() {
+func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *Cbuck {
+
+	return &Cbuck{
+		verificationToken,
+		 oauthtoken,
+		dynamodbEndpoint,
+		slack.New(oauthtoken),
+	}
+}
+
+func (c *Cbuck) Start(debug bool) {
 
 	logger.SetOutput(os.Stdout)
 
@@ -88,11 +93,7 @@ func (c *Cbuck) Start() {
 
 func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 
-	//needs the bot oauth
-
-	api := slack.New(c.oauthtoken)
-
-	_, err := api.AuthTest()
+	_, err := c.api.AuthTest()
 	if err != nil {
 		logger.Printf("[ERROR] Auth Error: %s", err.Error())
 
@@ -119,10 +120,9 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 	//get user cbuck is for
 	var receiverInfo *slack.User
 	//how much are they getting
-	var amount int
+	var amount float64
 
 	if give {
-
 		//RECEIVER
 		receiverInfo, err = c.findReceiver(text)
 		if err != nil{
@@ -133,13 +133,19 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 			return
 		}
 
+		if receiverInfo.ID == s.UserID {
+			logger.Printf("[INFO] You can't keep give yourself Contino bucks: %s", text)
 
+			msg := fmt.Sprintf(" You can't keep give yourself Contino bucks\n %s",selfishGif)
+
+			returnHTTPMSG(msg,w,http.StatusOK)
+			return
+		}
 
 		//AMOUNT
 		amount,err = findAmount(text)
 		if err != nil{
 			logger.Printf("[ERROR] There was an error with the Amount: %s", text)
-
 			msg := fmt.Sprintf("Please try again there was an error with the Amount \n%s",helpMSG)
 			returnHTTPMSG(msg,w,http.StatusOK)
 			return
@@ -147,7 +153,7 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 
 
 		logger.Printf("[INFO] Reciver ID : %s\n", receiverInfo.ID)
-		logger.Printf("[INFO] Amount: %d\n", amount)
+		logger.Printf("[INFO] Amount: %f\n", amount)
 
 	}else{
 		logger.Printf("[ERROR] Not giving so no idea what there doing\n")
@@ -172,19 +178,25 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 	}
 
 
-func (c *Cbuck) sendACK(giverID string, giverUser string, amount int, receiverInfo *slack.User) error {
+func (c *Cbuck) sendACK(giverID string, giverUser string, amount float64, receiverInfo *slack.User) error {
 
 	//RECEIVER MESSAGE
-	returnMsg := fmt.Sprintf("%s gave you %d Contino Bucks\n",giverUser,amount)
+	var receiverMsg string
 
-	err := c.sendSlackIM(receiverInfo.ID,returnMsg)
+	if amount == 0 {
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,moneyGifLink)
+	}else{
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,thumbsDownGif)
+	}
+
+	err := c.sendSlackIM(receiverInfo.ID,receiverMsg)
 	if err != nil {
 		logger.Printf("[ERROR] Sending %s Message: %s\n", receiverInfo.Profile.RealName, err.Error())
 		return err
 	}
 
 	//GIVER MESSAGE
-	giverMsg := fmt.Sprintf("You gave %s %d Contino Bucks\n %s",receiverInfo.Name,amount, moneyGifLink)
+	giverMsg := fmt.Sprintf("You gave %s %.2f Contino Bucks\n",receiverInfo.Name,amount)
 
 	err = c.sendSlackIM(giverID,giverMsg)
 	if err != nil {
@@ -197,8 +209,6 @@ func (c *Cbuck) sendACK(giverID string, giverUser string, amount int, receiverIn
 }
 func (c *Cbuck) findReceiver(text string) (*slack.User, error){
 
-	api := slack.New(c.oauthtoken)
-
 	receiverMatch := regexp.MustCompile(`<@\w+\|.+>`)
 
 	receiverID := receiverMatch.FindString(text)
@@ -210,7 +220,7 @@ func (c *Cbuck) findReceiver(text string) (*slack.User, error){
 	receiverID = receiverIDArray[0]
 
 	//Get all the RECEIVERS information
-	receiverInfo, err := api.GetUserInfo(receiverID)
+	receiverInfo, err := c.api.GetUserInfo(receiverID)
 
 	if err != nil {
 		logger.Printf("[ERROR] User %s can not be found\n", receiverID)
@@ -221,7 +231,7 @@ func (c *Cbuck) findReceiver(text string) (*slack.User, error){
 	return receiverInfo, nil
 }
 
-func findAmount(text string) (int, error) {
+func findAmount(text string) (float64, error) {
 
 	amountMatch := regexp.MustCompile(`>\s\d+`)
 	amountStr := amountMatch.FindString(text)
@@ -229,21 +239,31 @@ func findAmount(text string) (int, error) {
 
 	logger.Printf("[INFO] Amount String Match: %s\n", amountStr)
 
-	amount, err := strconv.Atoi(amountStr)
+	amount, err := strconv.ParseFloat(amountStr,64)
 
 	if err != nil {
 		logger.Printf("[ERROR] String to int conversion on amount %s\n", err.Error())
 		return -1, err
 	}
-	return amount, nil
+
+	if amount <= -1 {
+		logger.Printf("[INFO] Someone tried to take Contino Bucks %s\n", err.Error())
+		return -1, err
+	}
+
+	amountRD := amount
+	//round up to the nearest 2 decimal places
+	if amount != 0 {
+		amountRD = math.Floor(amount*100)/100
+	}
+
+	return amountRD, nil
 }
 
 func (c *Cbuck) sendSlackIM(userID string, message string) error {
 
-	api := slack.New(c.oauthtoken)
-
 	//let them know they got cbucks from someone
-	_, _, channelID, err := api.OpenIMChannel(userID)
+	_, _, channelID, err := c.api.OpenIMChannel(userID)
 	if err != nil {
 		logger.Printf("[ERROR] Sending %s Message: %s\n", userID, err)
 		return err
@@ -251,7 +271,7 @@ func (c *Cbuck) sendSlackIM(userID string, message string) error {
 
 	logger.Printf("[INFO] %s", message)
 
-	_, _, err = api.PostMessage(channelID, slack.MsgOptionText(message, false))
+	_, _, err = c.api.PostMessage(channelID, slack.MsgOptionText(message, false))
 	if err != nil{
 		logger.Printf("[ERROR] Sending Message: %s\n", err)
 		return err
