@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nlopes/slack"
+	"github.com/strongjz/contino-bucks/database"
 	"log"
 	"math"
 	"net/http"
@@ -15,14 +16,14 @@ import (
 )
 
 
-
 var (
 	moneyGifLink = "https://media.giphy.com/media/12Eo7WogCAoj84/giphy.gif"
 	selfishGif = "https://media.giphy.com/media/mXVpbjG2qmC2Y/giphy.gif"
 	thumbsDownGif = "https://media.giphy.com/media/9NEH2NjjMA4hi/giphy.gif"
-	buf    bytes.Buffer
-	logger = log.New(&buf, "logger: ", log.LstdFlags)
 	helpMSG = "Please try command again /cbuck give @USERNAME AMOUNT"
+	buf               bytes.Buffer
+	debug    bool
+	logger            = log.New(&buf, "logger: ", log.LstdFlags)
 )
 
 type Cbuck struct{
@@ -30,7 +31,14 @@ type Cbuck struct{
 	oauthtoken string
 	dynamodbEndpoint string
 	api *slack.Client
+	db *database.DB
 
+}
+
+type Gift struct {
+	receiver string
+	giver    string
+	amount   float64
 }
 
 func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *Cbuck {
@@ -40,6 +48,7 @@ func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *
 		 oauthtoken,
 		dynamodbEndpoint,
 		slack.New(oauthtoken),
+		database.New(dynamodbEndpoint),
 	}
 }
 
@@ -105,8 +114,10 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 	text := s.Text
 	logger.Printf("[INFO] Received Text: %s\n", text)
 
+	var g Gift
+
 	//GIVER
-	giverUser := s.UserName
+	g.giver = s.UserName
 
 	give, err := regexp.MatchString(`^(give)`, text)
 	if err != nil {
@@ -133,7 +144,7 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 			return
 		}
 
-		if receiverInfo.ID == s.UserID {
+		if receiverInfo.ID == g.giver {
 			logger.Printf("[INFO] You can't keep give yourself Contino bucks: %s", text)
 
 			msg := fmt.Sprintf(" You can't keep give yourself Contino bucks\n %s",selfishGif)
@@ -163,12 +174,19 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 
 	logger.Printf("[INFO] Reciever ID: %s, Fullname: %s, Email: %s\n", receiverInfo.ID, receiverInfo.Profile.RealName, receiverInfo.Profile.Email)
 
+	g.receiver = receiverInfo.ID
+	g.amount	= amount
 
 	//Write to the DATABASE HERE
-
+	err = updateDB(g)
+	if err != nil{
+		logger.Printf("[ERROR] Updating db error: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	//send ack to the giver and receiver
-	err = c.sendACK(s.UserID,giverUser,amount,receiverInfo)
+	err = c.sendACK(s.UserID,g.giver,amount,receiverInfo)
 	if err != nil{
 		logger.Printf("[ERROR] There Send the ACKS: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -177,16 +195,22 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 
 	}
 
+func updateDB(g Gift) err {
+
+
+
+	return err
+}
 
 func (c *Cbuck) sendACK(giverID string, giverUser string, amount float64, receiverInfo *slack.User) error {
 
 	//RECEIVER MESSAGE
 	var receiverMsg string
 
-	if amount == 0 {
-		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,moneyGifLink)
-	}else{
+	if amount == 0.00 {
 		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,thumbsDownGif)
+	}else{
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,moneyGifLink)
 	}
 
 	err := c.sendSlackIM(receiverInfo.ID,receiverMsg)

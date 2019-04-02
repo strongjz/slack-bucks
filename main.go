@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
-	"github.com/strongjz/contino-bucks/cbuck"
+	cbuck "github.com/strongjz/contino-bucks/cbuck"
 	"log"
 	"os"
 )
