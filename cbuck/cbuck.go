@@ -15,37 +15,31 @@ import (
 	"strings"
 )
 
-
 var (
-	moneyGifLink = "https://media.giphy.com/media/12Eo7WogCAoj84/giphy.gif"
-	selfishGif = "https://media.giphy.com/media/mXVpbjG2qmC2Y/giphy.gif"
+	moneyGifLink  = "https://media.giphy.com/media/12Eo7WogCAoj84/giphy.gif"
+	selfishGif    = "https://media.giphy.com/media/mXVpbjG2qmC2Y/giphy.gif"
 	thumbsDownGif = "https://media.giphy.com/media/9NEH2NjjMA4hi/giphy.gif"
-	helpMSG = "Please try command again /cbuck give @USERNAME AMOUNT"
-	buf               bytes.Buffer
-	debug    bool
-	logger            = log.New(&buf, "logger: ", log.LstdFlags)
+	helpMSG       = "Please try command again /cbuck give @USERNAME AMOUNT"
+	buf           bytes.Buffer
+	debug         bool
+	logger        = log.New(&buf, "logger: ", log.LstdFlags)
 )
 
-type Cbuck struct{
+type Cbuck struct {
 	verificationToken string
-	oauthtoken string
-	dynamodbEndpoint string
-	api *slack.Client
-	db *database.DB
-
-}
-
-type Gift struct {
-	receiver string
-	giver    string
-	amount   float64
+	oauthtoken        string
+	dynamodbEndpoint  string
+	api               *slack.Client
+	db                *database.DB
 }
 
 func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *Cbuck {
 
+	logger.Printf("[INFO] New Cbuck, db: %s", dynamodbEndpoint)
+
 	return &Cbuck{
 		verificationToken,
-		 oauthtoken,
+		oauthtoken,
 		dynamodbEndpoint,
 		slack.New(oauthtoken),
 		database.New(dynamodbEndpoint),
@@ -54,33 +48,35 @@ func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *
 
 func (c *Cbuck) Start(debug bool) {
 
+	if debug {
+		logger.Print("[INFO] Starting Cbuck")
+	}
 	logger.SetOutput(os.Stdout)
 
 	http.HandleFunc("/slash", func(w http.ResponseWriter, r *http.Request) {
 		s, err := slack.SlashCommandParse(r)
 		if err != nil {
 			logger.Printf("[ERROR] parsing slash command %s", err)
-			returnHTTPMSG(helpMSG, w,http.StatusOK)
+			returnHTTPMSG(helpMSG, w, http.StatusOK)
 			return
 		}
 
 		if !s.ValidateToken(c.verificationToken) {
 			logger.Printf("[ERROR] Token unauthorized")
-			returnHTTPMSG("[ERROR] unauthorized", w,http.StatusForbidden)
+			returnHTTPMSG("[ERROR] unauthorized", w, http.StatusForbidden)
 
 		}
 
 		logger.Printf("[INFO] S: %s", s)
 
-
 		switch s.Command {
 		case "/echo":
 			logger.Printf("[INFO] Text %s\n", s.Text)
-			returnHTTPMSG(fmt.Sprintf("%s from User %s", s.Text, s.UserName), w,http.StatusOK)
+			returnHTTPMSG(fmt.Sprintf("%s from User %s", s.Text, s.UserName), w, http.StatusOK)
 
 		case "/cbuck":
 
-			c.cbuck(s,w)
+			c.cbuck(s, w)
 		case "/":
 
 		default:
@@ -98,9 +94,9 @@ func (c *Cbuck) Start(debug bool) {
 		logger.Fatalf("[ERROR] Starting HTTP Service %s", err)
 	}
 
-	}
+}
 
-func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
+func (c *Cbuck) cbuck(s slack.SlashCommand, w http.ResponseWriter) {
 
 	_, err := c.api.AuthTest()
 	if err != nil {
@@ -114,16 +110,16 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 	text := s.Text
 	logger.Printf("[INFO] Received Text: %s\n", text)
 
-	var g Gift
+	var g database.Gift
 
 	//GIVER
-	g.giver = s.UserName
+	g.Giver = s.UserName
 
 	give, err := regexp.MatchString(`^(give)`, text)
 	if err != nil {
 
 		logger.Printf("[ERROR] on Give match: %s\n", err.Error())
-		returnHTTPMSG("Not wanting to give Contino Bucks?",w,http.StatusOK)
+		returnHTTPMSG("Not wanting to give Contino Bucks?", w, http.StatusOK)
 
 		return
 	}
@@ -136,70 +132,77 @@ func (c *Cbuck) cbuck(s slack.SlashCommand , w http.ResponseWriter ) {
 	if give {
 		//RECEIVER
 		receiverInfo, err = c.findReceiver(text)
-		if err != nil{
+		if err != nil {
 			logger.Printf("[ERROR] There was an error with the User: Recieved Text %s", text)
 
-			msg := fmt.Sprintf("Please try again there was an error with the User \n%s",helpMSG)
-			returnHTTPMSG(msg,w,http.StatusOK)
+			msg := fmt.Sprintf("Please try again there was an error with the User \n%s", helpMSG)
+			returnHTTPMSG(msg, w, http.StatusOK)
 			return
 		}
 
-		if receiverInfo.ID == g.giver {
+		if receiverInfo.ID == g.Giver {
 			logger.Printf("[INFO] You can't keep give yourself Contino bucks: %s", text)
 
-			msg := fmt.Sprintf(" You can't keep give yourself Contino bucks\n %s",selfishGif)
+			msg := fmt.Sprintf(" You can't keep give yourself Contino bucks\n %s", selfishGif)
 
-			returnHTTPMSG(msg,w,http.StatusOK)
+			returnHTTPMSG(msg, w, http.StatusOK)
 			return
 		}
 
 		//AMOUNT
-		amount,err = findAmount(text)
-		if err != nil{
+		amount, err = findAmount(text)
+		if err != nil {
 			logger.Printf("[ERROR] There was an error with the Amount: %s", text)
-			msg := fmt.Sprintf("Please try again there was an error with the Amount \n%s",helpMSG)
-			returnHTTPMSG(msg,w,http.StatusOK)
+			msg := fmt.Sprintf("Please try again there was an error with the Amount \n%s", helpMSG)
+			returnHTTPMSG(msg, w, http.StatusOK)
 			return
 		}
-
 
 		logger.Printf("[INFO] Reciver ID : %s\n", receiverInfo.ID)
 		logger.Printf("[INFO] Amount: %f\n", amount)
 
-	}else{
+	} else {
 		logger.Printf("[ERROR] Not giving so no idea what there doing\n")
-		returnHTTPMSG(helpMSG,w,http.StatusOK)
+		returnHTTPMSG(helpMSG, w, http.StatusOK)
 		return
 	}
 
 	logger.Printf("[INFO] Reciever ID: %s, Fullname: %s, Email: %s\n", receiverInfo.ID, receiverInfo.Profile.RealName, receiverInfo.Profile.Email)
 
-	g.receiver = receiverInfo.ID
-	g.amount	= amount
+	g.Receiver = receiverInfo.ID
+	g.Amount = amount
+
 
 	//Write to the DATABASE HERE
-	err = updateDB(g)
-	if err != nil{
+	err = c.updateDB(g)
+	if err != nil {
 		logger.Printf("[ERROR] Updating db error: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+
 	//send ack to the giver and receiver
-	err = c.sendACK(s.UserID,g.giver,amount,receiverInfo)
-	if err != nil{
+	err = c.sendACK(s.UserID, g.Giver, amount, receiverInfo)
+	if err != nil {
 		logger.Printf("[ERROR] There Send the ACKS: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+}
+
+func (c *Cbuck) updateDB(g database.Gift) error {
+
+	logger.Print("[INFO] updateDB")
+
+	err := c.db.WriteGift(&g)
+	if err != nil {
+
+		return err
 	}
 
-func updateDB(g Gift) err {
-
-
-
-	return err
+	return nil
 }
 
 func (c *Cbuck) sendACK(giverID string, giverUser string, amount float64, receiverInfo *slack.User) error {
@@ -208,21 +211,21 @@ func (c *Cbuck) sendACK(giverID string, giverUser string, amount float64, receiv
 	var receiverMsg string
 
 	if amount == 0.00 {
-		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,thumbsDownGif)
-	}else{
-		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount,moneyGifLink)
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount, thumbsDownGif)
+	} else {
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount, moneyGifLink)
 	}
 
-	err := c.sendSlackIM(receiverInfo.ID,receiverMsg)
+	err := c.sendSlackIM(receiverInfo.ID, receiverMsg)
 	if err != nil {
 		logger.Printf("[ERROR] Sending %s Message: %s\n", receiverInfo.Profile.RealName, err.Error())
 		return err
 	}
 
 	//GIVER MESSAGE
-	giverMsg := fmt.Sprintf("You gave %s %.2f Contino Bucks\n",receiverInfo.Name,amount)
+	giverMsg := fmt.Sprintf("You gave %s %.2f Contino Bucks\n", receiverInfo.Name, amount)
 
-	err = c.sendSlackIM(giverID,giverMsg)
+	err = c.sendSlackIM(giverID, giverMsg)
 	if err != nil {
 		logger.Printf("[ERROR] Sending Giver Message: %s\n", err.Error())
 		return err
@@ -231,7 +234,7 @@ func (c *Cbuck) sendACK(giverID string, giverUser string, amount float64, receiv
 	return nil
 
 }
-func (c *Cbuck) findReceiver(text string) (*slack.User, error){
+func (c *Cbuck) findReceiver(text string) (*slack.User, error) {
 
 	receiverMatch := regexp.MustCompile(`<@\w+\|.+>`)
 
@@ -263,7 +266,7 @@ func findAmount(text string) (float64, error) {
 
 	logger.Printf("[INFO] Amount String Match: %s\n", amountStr)
 
-	amount, err := strconv.ParseFloat(amountStr,64)
+	amount, err := strconv.ParseFloat(amountStr, 64)
 
 	if err != nil {
 		logger.Printf("[ERROR] String to int conversion on amount %s\n", err.Error())
@@ -278,7 +281,7 @@ func findAmount(text string) (float64, error) {
 	amountRD := amount
 	//round up to the nearest 2 decimal places
 	if amount != 0 {
-		amountRD = math.Floor(amount*100)/100
+		amountRD = math.Floor(amount*100) / 100
 	}
 
 	return amountRD, nil
@@ -296,7 +299,7 @@ func (c *Cbuck) sendSlackIM(userID string, message string) error {
 	logger.Printf("[INFO] %s", message)
 
 	_, _, err = c.api.PostMessage(channelID, slack.MsgOptionText(message, false))
-	if err != nil{
+	if err != nil {
 		logger.Printf("[ERROR] Sending Message: %s\n", err)
 		return err
 	}
@@ -304,7 +307,7 @@ func (c *Cbuck) sendSlackIM(userID string, message string) error {
 	return nil
 }
 
-func returnHTTPMSG(msg string,w http.ResponseWriter, status int)  {
+func returnHTTPMSG(msg string, w http.ResponseWriter, status int) {
 
 	logger.Printf("[INFO] Sending message: %s\n", msg)
 

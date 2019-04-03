@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
-	cbuck "github.com/strongjz/contino-bucks/cbuck"
+	"github.com/strongjz/contino-bucks/cbuck"
 	"log"
 	"os"
 )
@@ -11,9 +11,9 @@ import (
 var (
 	verificationToken string
 	oauthToken        string
-	dynamodb  string
+	db                string
 	buf               bytes.Buffer
-	debug    bool
+	debug             bool
 	logger            = log.New(&buf, "logger: ", log.LstdFlags)
 )
 
@@ -23,15 +23,23 @@ func main() {
 
 	flag.StringVar(&verificationToken, "token", "YOUR_VERIFICATION_TOKEN_HERE", "Your Slash Verification Token")
 	flag.StringVar(&oauthToken, "oauth", "Oauth token", "Your Oauth Verification Token")
-	flag.StringVar(&dynamodb, "dynamodb", "dynamodb", "dynamodb Endpoint")
+	flag.StringVar(&db, "db", "db", "db Endpoint")
 	flag.BoolVar(&debug, "debug", false, "Show JSON output")
 
 	flag.Parse()
 
-	if debug {logger.Printf("[INFO] Verification Token: %s", verificationToken)}
-	if debug {logger.Printf("[INFO] OAUTH Token: %s", oauthToken)}
+	if debug {
+		logger.Printf("[INFO] Verification Token: %s", verificationToken)
+		logger.Printf("[INFO] OAUTH Token: %s", oauthToken)
+		logger.Printf("[INFO] DB Endpoint: %s", db)
 
-	c := cbuck.New(dynamodb,verificationToken, oauthToken)
+		logger.Printf("[INFO] Main: Creating New CBuck")
+	}
+
+	c := cbuck.New(db, verificationToken, oauthToken)
+
+
+	if debug {logger.Print("[INFO] Main: Starting Cbuck")}
 
 	c.Start(debug)
 
