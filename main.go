@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
-	"github.com/strongjz/contino-bucks/cbuck"
+	"github.com/strongjz/slack-bucks/buck"
 	"log"
 	"os"
 )
@@ -36,7 +36,7 @@ func main() {
 		logger.Printf("[INFO] Main: Creating New CBuck")
 	}
 
-	c := cbuck.New(db, verificationToken, oauthToken)
+	c := buck.New(db, verificationToken, oauthToken)
 
 
 	if debug {logger.Print("[INFO] Main: Starting Cbuck")}

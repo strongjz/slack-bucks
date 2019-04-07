@@ -15,7 +15,7 @@ var (
 	buf        bytes.Buffer
 	debug      bool
 	logger     = log.New(&buf, "logger: ", log.LstdFlags)
-	totalTable = "Contino_Bucks_Total"
+	totalTable = "Bucks_Total"
 )
 
 type Gift struct {
