@@ -44,12 +44,6 @@ func New(endpoint string) *DB {
 		svc: dynamodb.New(sess),
 	}
 
-	err = db.createTables()
-	if err != nil {
-		logger.Printf("[ERROR] Could not connect to Database: %s", err)
-		return nil
-	}
-
 	return &db
 
 }

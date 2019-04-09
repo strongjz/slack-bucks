@@ -1,4 +1,5 @@
 slack.token
+env.json
 .idea/
 # Binaries for programs and plugins
 *.exe

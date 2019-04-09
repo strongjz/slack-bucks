@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
-	"flag"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/strongjz/slack-bucks/buck"
 	"log"
 	"os"
@@ -15,32 +18,40 @@ var (
 	buf               bytes.Buffer
 	debug             bool
 	logger            = log.New(&buf, "logger: ", log.LstdFlags)
+	ginLambda         *ginadapter.GinLambda
 )
 
-func main() {
+func init() {
 
 	logger.SetOutput(os.Stdout)
 
-	flag.StringVar(&verificationToken, "token", "YOUR_VERIFICATION_TOKEN_HERE", "Your Slash Verification Token")
-	flag.StringVar(&oauthToken, "oauth", "Oauth token", "Your Oauth Verification Token")
-	flag.StringVar(&db, "db", "db", "db Endpoint")
-	flag.BoolVar(&debug, "debug", false, "Show JSON output")
+	verificationToken := os.Getenv("verificationToken")
+	oauthToken := os.Getenv("oauthToken")
+	db := os.Getenv("db")
 
-	flag.Parse()
+	logger.Printf("[INFO] Verification Token: %s", verificationToken)
+	logger.Printf("[INFO] OAUTH Token: %s", oauthToken)
+	logger.Printf("[INFO] DB Endpoint: %s", db)
 
-	if debug {
-		logger.Printf("[INFO] Verification Token: %s", verificationToken)
-		logger.Printf("[INFO] OAUTH Token: %s", oauthToken)
-		logger.Printf("[INFO] DB Endpoint: %s", db)
-
-		logger.Printf("[INFO] Main: Creating New CBuck")
-	}
+	logger.Printf("[INFO] Main: Creating New Slack Bucks")
 
 	c := buck.New(db, verificationToken, oauthToken)
 
+	logger.Print("[INFO] Main: Starting Slack Bucks")
 
-	if debug {logger.Print("[INFO] Main: Starting Cbuck")}
+	ginLambda = ginadapter.New(c.Start())
 
-	c.Start(debug)
+}
 
+func HandleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+
+	logger.Println("Lambda request", req.RequestContext.RequestID)
+
+	// If no name is provided in the HTTP request body, throw an error
+	return ginLambda.Proxy(req)
+}
+
+func main() {
+
+	lambda.Start(HandleRequest)
 }
