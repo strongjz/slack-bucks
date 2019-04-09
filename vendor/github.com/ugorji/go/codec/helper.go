@@ -193,11 +193,11 @@ type containerState uint8
 const (
 	_ containerState = iota
 
-	containerMapStart // slot left open, since Driver method already covers it
+	containerMapStart  // slot left open, since Driver method already covers it
 	containerMapKey
 	containerMapValue
 	containerMapEnd
-	containerArrayStart // slot left open, since Driver methods already cover it
+	containerArrayStart  // slot left open, since Driver methods already cover it
 	containerArrayElem
 	containerArrayEnd
 )

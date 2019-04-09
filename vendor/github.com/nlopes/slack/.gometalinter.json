@@ -9,6 +9,8 @@
     "goimports"
   ],
   "Vendor": true,
-  "Exclude": ["vendor"],
+  "Exclude": [
+    "vendor"
+  ],
   "Deadline": "300s"
 }

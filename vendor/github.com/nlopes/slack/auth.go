@@ -7,8 +7,8 @@ import (
 
 // AuthRevokeResponse contains our Auth response from the auth.revoke endpoint
 type AuthRevokeResponse struct {
-	SlackResponse      // Contains the "ok", and "Error", if any
-	Revoked       bool `json:"revoked,omitempty"`
+	SlackResponse // Contains the "ok", and "Error", if any
+	Revoked bool `json:"revoked,omitempty"`
 }
 
 // authRequest sends the actual request, and unmarshals the response

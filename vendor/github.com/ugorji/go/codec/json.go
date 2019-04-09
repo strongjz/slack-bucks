@@ -214,7 +214,7 @@ func (e *jsonEncDriver) encodeFloat(f float64, numbits int) {
 }
 
 func (e *jsonEncDriver) EncodeInt(v int64) {
-	if x := e.h.IntegerAsString; x == 'A' || x == 'L' && (v > 1<<53 || v < -(1<<53)) {
+	if x := e.h.IntegerAsString; x == 'A' || x == 'L' && (v > 1<<53 || v < -(1 << 53)) {
 		e.w.writen1('"')
 		e.w.writeb(strconv.AppendInt(e.b[:0], v, 10))
 		e.w.writen1('"')

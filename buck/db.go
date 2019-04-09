@@ -14,6 +14,3 @@ func (b *Buck) updateDB(g database.Gift) error {
 
 	return nil
 }
-
-
-

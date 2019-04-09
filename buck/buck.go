@@ -49,11 +49,12 @@ func (b *Buck) Start() *gin.Engine {
 
 	logger.Print("[INFO] Starting routerEngine")
 
+
+	r := gin.New()
+
 	// set server mode
 	gin.SetMode(gin.DebugMode)
 
-
-	r := gin.New()
 
 	// Global middleware
 	r.Use(gin.Logger())
@@ -64,9 +65,10 @@ func (b *Buck) Start() *gin.Engine {
 	r.POST("/", rootHandler)
 
 	return r
+
 }
 
-func  (b *Buck) echoHandler(c *gin.Context) {
+func (b *Buck) echoHandler(c *gin.Context) {
 
 	s := b.validateSlackMsg(c)
 
@@ -77,21 +79,21 @@ func  (b *Buck) echoHandler(c *gin.Context) {
 	case "/echo":
 		logger.Printf("[INFO] Text %s\n", s.Text)
 		msg, _ := returnSlackMSG(fmt.Sprintf("%s from User %s", s.Text, s.UserName))
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 
 	case "/":
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 
 	default:
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 
 	}
 	return
 }
 
-func  (b *Buck) buckHandler(c *gin.Context) {
+func (b *Buck) buckHandler(c *gin.Context) {
 
 	s := b.validateSlackMsg(c)
 
@@ -100,34 +102,34 @@ func  (b *Buck) buckHandler(c *gin.Context) {
 	switch s.Command {
 
 	case "/buck":
-		b.buck(s,c)
+		b.buck(s, c)
 	case "/":
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 
 	default:
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 
 	}
 
 	return
 }
 
-func  (b *Buck) validateSlackMsg(c *gin.Context) *slack.SlashCommand {
+func (b *Buck) validateSlackMsg(c *gin.Context) *slack.SlashCommand {
 
 	s, err := slack.SlashCommandParse(c.Request)
 	if err != nil {
 		logger.Printf("[ERROR] parsing slash command %s", err)
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 		return nil
 	}
 
 	if !s.ValidateToken(b.verificationToken) {
 		logger.Printf("[ERROR] Token unauthorized")
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusForbidden,msg)
+		c.JSON(http.StatusForbidden, msg)
 		return nil
 	}
 
@@ -136,7 +138,7 @@ func  (b *Buck) validateSlackMsg(c *gin.Context) *slack.SlashCommand {
 
 func rootHandler(c *gin.Context) {
 	msg, _ := returnSlackMSG(helpMSG)
-	c.JSON(http.StatusOK,msg)
+	c.JSON(http.StatusOK, msg)
 	return
 }
 
@@ -146,7 +148,7 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 	if err != nil {
 		logger.Printf("[ERROR] Auth Error: %s", err.Error())
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 		return
 	}
 
@@ -180,7 +182,7 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 			logger.Printf("[ERROR] There was an error with the User: Recieved Text %s", text)
 
 			msg, _ := returnSlackMSG(fmt.Sprintf("Please try again there was an error with the User \n%s", helpMSG))
-			c.JSON(http.StatusOK,msg)
+			c.JSON(http.StatusOK, msg)
 
 			return
 		}
@@ -189,7 +191,7 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 			logger.Printf("[INFO] You can't keep give yourself Contino bucks: %s", text)
 
 			msg, _ := returnSlackMSG(fmt.Sprintf(" You can't keep give yourself Contino bucks\n %s", selfishGif))
-			c.JSON(http.StatusOK,msg)
+			c.JSON(http.StatusOK, msg)
 			return
 		}
 
@@ -198,7 +200,7 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 		if err != nil {
 			logger.Printf("[ERROR] There was an error with the Amount: %s", text)
 			msg, _ := returnSlackMSG(fmt.Sprintf("Please try again there was an error with the Amount \n%s", helpMSG))
-			c.JSON(http.StatusOK,msg)
+			c.JSON(http.StatusOK, msg)
 			return
 		}
 
@@ -208,7 +210,7 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 	} else {
 		logger.Printf("[ERROR] Not giving so no idea what there doing\n")
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK,msg)
+		c.JSON(http.StatusOK, msg)
 		return
 	}
 
@@ -217,16 +219,15 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 	g.Receiver = receiverInfo.ID
 	g.Amount = amount
 
-
 	/*
-	//Write to the DATABASE HERE
+		//Write to the DATABASE HERE
 
-	err = c.updateDB(g)
-	if err != nil {
-		logger.Printf("[ERROR] Updating db error: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		err = c.updateDB(g)
+		if err != nil {
+			logger.Printf("[ERROR] Updating db error: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	*/
 
 	//send ack to the giver and receiver
@@ -234,7 +235,7 @@ func (b *Buck) buck(s *slack.SlashCommand, c *gin.Context) {
 	if err != nil {
 		logger.Printf("[ERROR] There Send the ACKS: %s", err.Error())
 		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusInternalServerError,msg)
+		c.JSON(http.StatusInternalServerError, msg)
 		return
 	}
 

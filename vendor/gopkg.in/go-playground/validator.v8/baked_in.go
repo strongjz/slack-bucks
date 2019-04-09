@@ -271,7 +271,7 @@ func IsISBN13(v *Validate, topStruct reflect.Value, currentStructOrField reflect
 		checksum += factor[i%2] * int32(s[i]-'0')
 	}
 
-	return (int32(s[12]-'0'))-((10-(checksum%10))%10) == 0
+	return (int32(s[12] - '0'))-((10-(checksum%10))%10) == 0
 }
 
 // IsISBN10 is the validation function for validating if the field's value is a valid v10 ISBN.

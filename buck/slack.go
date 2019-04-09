@@ -125,9 +125,6 @@ func returnSlackMSG(msg string) ([]byte, error) {
 		return nil, err
 	}
 
-
 	return b, nil
 
 }
-
-

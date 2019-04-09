@@ -29,8 +29,8 @@ const (
 	bincVdSymbol
 
 	bincVdDecimal
-	_               // open slot
-	_               // open slot
+	_  // open slot
+	_  // open slot
 	bincVdCustomExt = 0x0f
 )
 
@@ -49,9 +49,9 @@ const (
 const (
 	bincFlBin16 byte = iota
 	bincFlBin32
-	_ // bincFlBin32e
+	_  // bincFlBin32e
 	bincFlBin64
-	_ // bincFlBin64e
+	_  // bincFlBin64e
 	// others not currently supported
 )
 

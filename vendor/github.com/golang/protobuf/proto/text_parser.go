@@ -188,7 +188,7 @@ func (p *textParser) advance() {
 			p.errorf("invalid quoted string %s: %v", p.s[0:i+1], err)
 			return
 		}
-		p.cur.value, p.s = p.s[0:i+1], p.s[i+1:len(p.s)]
+		p.cur.value, p.s = p.s[0 : i+1], p.s[i+1 : len(p.s)]
 		p.cur.unquoted = unq
 	default:
 		i := 0

@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
+	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/strongjz/slack-bucks/buck"
 	"log"
 	"os"
@@ -18,12 +18,15 @@ var (
 	buf               bytes.Buffer
 	debug             bool
 	logger            = log.New(&buf, "logger: ", log.LstdFlags)
-	ginLambda         *ginadapter.GinLambda
+	ginLambda *ginadapter.GinLambda
 )
 
-func init() {
+
+func HandleRequest(req events.APIGatewayProxyRequest) {
 
 	logger.SetOutput(os.Stdout)
+
+	logger.Println("Lambda request", req.RequestContext.RequestID)
 
 	verificationToken := os.Getenv("verificationToken")
 	oauthToken := os.Getenv("oauthToken")
@@ -43,15 +46,13 @@ func init() {
 
 }
 
-func HandleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-
-	logger.Println("Lambda request", req.RequestContext.RequestID)
-
+func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// If no name is provided in the HTTP request body, throw an error
 	return ginLambda.Proxy(req)
 }
 
+
 func main() {
 
-	lambda.Start(HandleRequest)
+	lambda.Start(Handler)
 }

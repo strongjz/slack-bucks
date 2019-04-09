@@ -1,0 +1,60 @@
+{
+  "body": "{\"message\": \"hello world\"}",
+  "resource": "/{proxy+}",
+  "path": "/path/to/resource",
+  "httpMethod": "POST",
+  "isBase64Encoded": false,
+  "queryStringParameters": {
+    "token": "GM95qrfGOZ2IIKGks5s9gBib",
+    "team_id": "TH853HL9Z",
+    "team_domain": "continobot",
+    "channel_id": "DHB5YJMC4",
+    "channel_name": "directmessage",
+    "user_id": "UHBGMBNKF",
+    "user_name": "strong.james.e",
+    "command": "%2Fbuck",
+    "text": "give+%3C%40UH5RMGCF2%7Cjames.strong%3E+3423",
+    "response_url": "https%3A%2F%2Fhooks.slack.com%2Fcommands%2FTH853HL9Z%2F595496832801%2Fco4a2uQwu1LknEp4sz7eGTHF&trigger_id=605340650343.586173598339.03e129bed515754238787382a8c4d47f"
+  },
+  "pathParameters": {
+    "proxy": "/buck"
+  },
+  "headers": {
+    "X-Slack-Signatur": "v0=cf86a85c5455bb5b9310260ebf264a0e6f0a22afd941cecd0ba2f705fb794801",
+    "Accept": "application/json,*/*",
+    "Accept-Encoding": "gzip, deflate, sdch",
+    "Accept-Language": "en-US,en;q=0.8",
+    "Cache-Control": "max-age=0",
+    "Host": "e73d0ed3.ngrok.io",
+    "User-Agent": "Slackbot 1.0 (+https://api.slack.com/robots)",
+    "X-Forwarded-For": "52.87.230.102",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "resourceId": "123456",
+    "stage": "prod",
+    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+    "requestTime": "09/Apr/2015:12:34:56 +0000",
+    "requestTimeEpoch": 1428582896000,
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "accessKey": null,
+      "sourceIp": "127.0.0.1",
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "Custom User Agent String",
+      "user": null
+    },
+    "path": "/prod/path/to/resource",
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "POST",
+    "apiId": "1234567890",
+    "protocol": "HTTP/1.1"
+  }
+}

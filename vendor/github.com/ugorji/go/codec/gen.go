@@ -1492,7 +1492,7 @@ func (x *genRunner) decStructMap(varname, lenvarname string, rtid uintptr, t ref
 		x.linef("for %sj%s := 0; %sj%s < %s; %sj%s++ {", tpfx, i, tpfx, i, lenvarname, tpfx, i)
 	case genStructMapStyleCheckBreak:
 		x.linef("for %sj%s := 0; !r.CheckBreak(); %sj%s++ {", tpfx, i, tpfx, i)
-	default: // 0, otherwise.
+	default:                                                      // 0, otherwise.
 		x.linef("var %shl%s bool = %s >= 0", tpfx, i, lenvarname) // has length
 		x.linef("for %sj%s := 0; ; %sj%s++ {", tpfx, i, tpfx, i)
 		x.linef("if %shl%s { if %sj%s >= %s { break }", tpfx, i, tpfx, i, lenvarname)
