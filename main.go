@@ -22,11 +22,9 @@ var (
 )
 
 
-func HandleRequest(req events.APIGatewayProxyRequest) {
+func init () {
 
 	logger.SetOutput(os.Stdout)
-
-	logger.Println("Lambda request", req.RequestContext.RequestID)
 
 	verificationToken := os.Getenv("verificationToken")
 	oauthToken := os.Getenv("oauthToken")
@@ -47,6 +45,10 @@ func HandleRequest(req events.APIGatewayProxyRequest) {
 }
 
 func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+
+	logger.Println("Lambda request", req.RequestContext.RequestID)
+
+	
 	// If no name is provided in the HTTP request body, throw an error
 	return ginLambda.Proxy(req)
 }
