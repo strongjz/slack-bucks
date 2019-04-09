@@ -1,11 +1,9 @@
 OUTPUT = main # Referenced as Handler in template.yaml
-PACKAGED_TEMPLATE = packaged.yaml
-S3_BUCKET := $(S3_BUCKET)
-STACK_NAME := $(STACK_NAME)
 TEMPLATE = template.yaml
 
-vendor: Gopkg.toml
-        dep ensure
+.PHONY: vendor
+vendor:
+	dep ensure
 
 .PHONY: test
 test:
@@ -19,8 +17,8 @@ clean:
 install:
 	go get ./...
 
-main: ./function/main.go
-	go build -o $(OUTPUT) ./function/main.go
+main: ./main.go
+	go build -o $(OUTPUT) main.go
 
 # compile the code to run in Lambda (local or real)
 .PHONY: lambda
@@ -30,6 +28,11 @@ lambda:
 .PHONY: build
 build: clean lambda
 
+
+.PHONY: api
+api-debug: build
+	sam local start-api --debug --env-vars env.json
+
 .PHONY: api
 api: build
-	sam local start-api
+	sam local start-api --env-vars env.json

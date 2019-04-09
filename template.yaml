@@ -10,6 +10,12 @@ Resources:
     Properties:
       Handler: main
       Runtime: go1.x
+      Environment:
+        Variables:
+          verificationToken: VALUE
+          oauthToken: VALUE
+          port: VALUE
+          db: VALUE
       Events:
         PostEvent:
           Type: Api

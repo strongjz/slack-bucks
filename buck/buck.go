@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"errors"
 )
 
 var (
@@ -62,7 +63,7 @@ func (b *Buck) Start() *gin.Engine {
 
 	r.POST("/buck", b.buckHandler)
 	r.POST("/echo", b.echoHandler)
-	r.POST("/", rootHandler)
+	r.POST("/", b.rootHandler)
 
 	return r
 
@@ -70,7 +71,14 @@ func (b *Buck) Start() *gin.Engine {
 
 func (b *Buck) echoHandler(c *gin.Context) {
 
-	s := b.validateSlackMsg(c)
+	slackQuickResponse(c)
+
+	s, err := b.validateSlackMsg(c)
+	if err != nil {
+		msg, _ := returnSlackMSG(helpMSG)
+		c.JSON(http.StatusOK, msg)
+		return
+	}
 
 	logger.Printf("[INFO] S: %s", s)
 
@@ -80,22 +88,41 @@ func (b *Buck) echoHandler(c *gin.Context) {
 		logger.Printf("[INFO] Text %s\n", s.Text)
 		msg, _ := returnSlackMSG(fmt.Sprintf("%s from User %s", s.Text, s.UserName))
 		c.JSON(http.StatusOK, msg)
+		return
 
 	case "/":
 		msg, _ := returnSlackMSG(helpMSG)
 		c.JSON(http.StatusOK, msg)
+		return
 
 	default:
 		msg, _ := returnSlackMSG(helpMSG)
 		c.JSON(http.StatusOK, msg)
+		return
 
 	}
 	return
 }
 
+func slackQuickResponse(c *gin.Context){
+
+	msg, _ := returnSlackMSG("Sending the Bucks now!")
+	c.JSON(http.StatusOK, msg)
+	return
+
+}
+
 func (b *Buck) buckHandler(c *gin.Context) {
 
-	s := b.validateSlackMsg(c)
+	slackQuickResponse(c)
+
+	s, err := b.validateSlackMsg(c)
+	if err != nil {
+		logger.Printf("[ERROR] Validating slack message: %s", err)
+		msg, _ := returnSlackMSG(helpMSG)
+		c.JSON(http.StatusOK, msg)
+		return
+	}
 
 	logger.Printf("[INFO] S: %s", s)
 
@@ -106,37 +133,34 @@ func (b *Buck) buckHandler(c *gin.Context) {
 	case "/":
 		msg, _ := returnSlackMSG(helpMSG)
 		c.JSON(http.StatusOK, msg)
+		return
 
 	default:
 		msg, _ := returnSlackMSG(helpMSG)
 		c.JSON(http.StatusOK, msg)
-
+		return
 	}
 
 	return
 }
 
-func (b *Buck) validateSlackMsg(c *gin.Context) *slack.SlashCommand {
+func (b *Buck) validateSlackMsg(c *gin.Context) (*slack.SlashCommand, error) {
 
 	s, err := slack.SlashCommandParse(c.Request)
 	if err != nil {
 		logger.Printf("[ERROR] parsing slash command %s", err)
-		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusOK, msg)
-		return nil
+		return nil, err
 	}
 
 	if !s.ValidateToken(b.verificationToken) {
 		logger.Printf("[ERROR] Token unauthorized")
-		msg, _ := returnSlackMSG(helpMSG)
-		c.JSON(http.StatusForbidden, msg)
-		return nil
+		return nil, errors.New("[ERROR] Token unauthorized")
 	}
 
-	return &s
+	return &s, nil
 }
 
-func rootHandler(c *gin.Context) {
+func (b *Buck) rootHandler(c *gin.Context) {
 	msg, _ := returnSlackMSG(helpMSG)
 	c.JSON(http.StatusOK, msg)
 	return
