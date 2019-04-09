@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"errors"
+
 )
 
 var (
@@ -29,6 +30,7 @@ type Buck struct {
 	dynamodbEndpoint  string
 	api               *slack.Client
 	db                *database.DB
+	router			 *gin.Engine
 }
 
 func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *Buck {
@@ -41,6 +43,7 @@ func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *
 		dynamodbEndpoint,
 		slack.New(oauthtoken),
 		database.New(dynamodbEndpoint),
+		gin.Default(),
 	}
 }
 
@@ -50,28 +53,22 @@ func (b *Buck) Start() *gin.Engine {
 
 	logger.Print("[INFO] Starting routerEngine")
 
-
-	r := gin.New()
-
 	// set server mode
 	gin.SetMode(gin.DebugMode)
 
 
 	// Global middleware
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	b.router.Use(gin.Logger())
+	b.router.Use(gin.Recovery())
 
-	r.POST("/buck", b.buckHandler)
-	r.POST("/echo", b.echoHandler)
-	r.POST("/", b.rootHandler)
+	b.router.POST("/buck", b.buckHandler)
+	b.router.POST("/echo", b.echoHandler)
+	b.router.POST("/", b.rootHandler)
 
-	return r
-
+	return b.router
 }
 
 func (b *Buck) echoHandler(c *gin.Context) {
-
-	slackQuickResponse(c)
 
 	s, err := b.validateSlackMsg(c)
 	if err != nil {
@@ -104,19 +101,10 @@ func (b *Buck) echoHandler(c *gin.Context) {
 	return
 }
 
-func slackQuickResponse(c *gin.Context){
-
-	msg, _ := returnSlackMSG("Sending the Bucks now!")
-	c.JSON(http.StatusOK, msg)
-	return
-
-}
-
 func (b *Buck) buckHandler(c *gin.Context) {
 
-	slackQuickResponse(c)
-
 	s, err := b.validateSlackMsg(c)
+
 	if err != nil {
 		logger.Printf("[ERROR] Validating slack message: %s", err)
 		msg, _ := returnSlackMSG(helpMSG)
@@ -125,7 +113,7 @@ func (b *Buck) buckHandler(c *gin.Context) {
 	}
 
 	logger.Printf("[INFO] S: %s", s)
-
+	logger.Printf("[INFO] Response URL: %s", s.ResponseURL)
 	switch s.Command {
 
 	case "/buck":
@@ -156,6 +144,7 @@ func (b *Buck) validateSlackMsg(c *gin.Context) (*slack.SlashCommand, error) {
 		logger.Printf("[ERROR] Token unauthorized")
 		return nil, errors.New("[ERROR] Token unauthorized")
 	}
+
 
 	return &s, nil
 }

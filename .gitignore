@@ -1,5 +1,12 @@
 slack.token
 env.json
+
+secrets.tf
+
+.terraform
+
+main
+
 .idea/
 # Binaries for programs and plugins
 *.exe

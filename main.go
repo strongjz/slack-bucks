@@ -33,12 +33,12 @@ func init () {
 	logger.Printf("[INFO] Verification Token: %s", verificationToken)
 	logger.Printf("[INFO] OAUTH Token: %s", oauthToken)
 	logger.Printf("[INFO] DB Endpoint: %s", db)
-
 	logger.Printf("[INFO] Main: Creating New Slack Bucks")
 
 	c := buck.New(db, verificationToken, oauthToken)
 
 	logger.Print("[INFO] Main: Starting Slack Bucks")
+
 
 	ginLambda = ginadapter.New(c.Start())
 
@@ -48,7 +48,6 @@ func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 
 	logger.Println("Lambda request", req.RequestContext.RequestID)
 
-	
 	// If no name is provided in the HTTP request body, throw an error
 	return ginLambda.Proxy(req)
 }
