@@ -14,7 +14,6 @@ import (
 var (
 	buf        bytes.Buffer
 	debug      bool
-	logger     = log.New(&buf, "logger: ", log.LstdFlags)
 	totalTable = "Bucks_Total"
 )
 
@@ -30,13 +29,13 @@ type DB struct {
 
 func New(endpoint string) *DB {
 
-	logger.Printf("[INFO] Creating new DB connection to endpoint %s", endpoint)
+	log.Printf("[INFO] Creating new DB connection to endpoint %s", endpoint)
 
 	sess, err := session.NewSession(&aws.Config{
 		Endpoint: aws.String(endpoint)},
 	)
 	if err != nil {
-		logger.Printf("[ERROR] Could not connect to Database: %s", err)
+		log.Printf("[ERROR] Could not connect to Database: %s", err)
 		return nil
 	}
 
@@ -50,7 +49,7 @@ func New(endpoint string) *DB {
 
 func (d *DB) createTables() error {
 
-	logger.Print("Creating Tables")
+	log.Print("Creating Tables")
 	input := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -84,22 +83,22 @@ func (d *DB) createTables() error {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeResourceInUseException:
-				logger.Print(dynamodb.ErrCodeResourceInUseException, aerr.Error())
+				log.Print(dynamodb.ErrCodeResourceInUseException, aerr.Error())
 				return nil //Table already exists
 			case dynamodb.ErrCodeLimitExceededException:
-				logger.Print(dynamodb.ErrCodeLimitExceededException, aerr.Error())
+				log.Print(dynamodb.ErrCodeLimitExceededException, aerr.Error())
 				return err
 			case dynamodb.ErrCodeInternalServerError:
-				logger.Print(dynamodb.ErrCodeInternalServerError, aerr.Error())
+				log.Print(dynamodb.ErrCodeInternalServerError, aerr.Error())
 				return err
 			default:
-				logger.Print(aerr.Error())
+				log.Print(aerr.Error())
 				return err
 			}
 		} else {
 			// Print the error, cast err to awserr.Error to get the Code and
 			// Message from an error.
-			logger.Print(err.Error())
+			log.Print(err.Error())
 			return err
 		}
 	}
@@ -116,7 +115,7 @@ func (d *DB) WriteGift(g *Gift) error {
 		//first time getting bucks
 		err = d.updateGift(g)
 		if err != nil {
-			logger.Printf(fmt.Sprintf("[ERROR] Updating Databases, %v", err))
+			log.Printf(fmt.Sprintf("[ERROR] Updating Databases, %v", err))
 			return err
 		}
 	}
@@ -128,7 +127,7 @@ func (d *DB) WriteGift(g *Gift) error {
 	//write it back to db
 	err = d.updateGift(g)
 	if err != nil {
-		logger.Printf(fmt.Sprintf("[ERROR] Updating Databases, %v", err))
+		log.Printf(fmt.Sprintf("[ERROR] Updating Databases, %v", err))
 		return err
 	}
 
@@ -154,7 +153,7 @@ func (d *DB) getGift(id string) (*Gift, error) {
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &gift)
 	if err != nil {
-		logger.Panicf(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+		log.Panicf(fmt.Sprintf("Failed to unmarshal Record, %v", err))
 		return nil, err
 	}
 
@@ -165,8 +164,8 @@ func (d *DB) updateGift(g *Gift) error {
 
 	av, err := dynamodbattribute.MarshalMap(g)
 	if err != nil {
-		logger.Printf("Got error marshalling new movie item:")
-		logger.Printf(err.Error())
+		log.Printf("Got error marshalling new movie item:")
+		log.Printf(err.Error())
 		return err
 	}
 
@@ -177,8 +176,8 @@ func (d *DB) updateGift(g *Gift) error {
 
 	_, err = d.svc.PutItem(input)
 	if err != nil {
-		logger.Printf("Got error calling PutItem:")
-		logger.Printf(err.Error())
+		log.Printf("Got error calling PutItem:")
+		log.Printf(err.Error())
 		return err
 	}
 

@@ -17,27 +17,25 @@ var (
 	db                string
 	buf               bytes.Buffer
 	debug             bool
-	logger            = log.New(&buf, "logger: ", log.LstdFlags)
 	ginLambda *ginadapter.GinLambda
 )
 
 
 func init () {
 
-	logger.SetOutput(os.Stdout)
 
 	verificationToken := os.Getenv("verificationToken")
 	oauthToken := os.Getenv("oauthToken")
 	db := os.Getenv("db")
 
-	logger.Printf("[INFO] Verification Token: %s", verificationToken)
-	logger.Printf("[INFO] OAUTH Token: %s", oauthToken)
-	logger.Printf("[INFO] DB Endpoint: %s", db)
-	logger.Printf("[INFO] Main: Creating New Slack Bucks")
+	log.Printf("[INFO] Verification Token: %s", verificationToken)
+	log.Printf("[INFO] OAUTH Token: %s", oauthToken)
+	log.Printf("[INFO] DB Endpoint: %s", db)
+	log.Printf("[INFO] Main: Creating New Slack Bucks")
 
 	c := buck.New(db, verificationToken, oauthToken)
 
-	logger.Print("[INFO] Main: Starting Slack Bucks")
+	log.Print("[INFO] Main: Starting Slack Bucks")
 
 
 	ginLambda = ginadapter.New(c.Start())
@@ -46,7 +44,7 @@ func init () {
 
 func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	logger.Println("Lambda request", req.RequestContext.RequestID)
+	log.Println("[INFO] Lambda request", req.RequestContext.RequestID)
 
 	// If no name is provided in the HTTP request body, throw an error
 	return ginLambda.Proxy(req)
