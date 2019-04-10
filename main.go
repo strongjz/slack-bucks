@@ -17,12 +17,10 @@ var (
 	db                string
 	buf               bytes.Buffer
 	debug             bool
-	ginLambda *ginadapter.GinLambda
+	ginLambda         *ginadapter.GinLambda
 )
 
-
-func init () {
-
+func init() {
 
 	verificationToken := os.Getenv("verificationToken")
 	oauthToken := os.Getenv("oauthToken")
@@ -37,7 +35,6 @@ func init () {
 
 	log.Print("[INFO] Main: Starting Slack Bucks")
 
-
 	ginLambda = ginadapter.New(c.Start())
 
 }
@@ -49,7 +46,6 @@ func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 	// If no name is provided in the HTTP request body, throw an error
 	return ginLambda.Proxy(req)
 }
-
 
 func main() {
 

@@ -2,6 +2,7 @@ package buck
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/nlopes/slack"
@@ -10,8 +11,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"errors"
-
 )
 
 var (
@@ -28,7 +27,7 @@ type Buck struct {
 	dynamodbEndpoint  string
 	api               *slack.Client
 	db                *database.DB
-	router			 *gin.Engine
+	router            *gin.Engine
 }
 
 func New(dynamodbEndpoint string, verificationToken string, oauthtoken string) *Buck {
@@ -53,7 +52,6 @@ func (b *Buck) Start() *gin.Engine {
 
 	// set server mode
 	gin.SetMode(gin.DebugMode)
-
 
 	// Global middleware
 	b.router.Use(gin.Logger())
@@ -150,7 +148,6 @@ func (b *Buck) validateSlackMsg(c *gin.Context) (*slack.SlashCommand, error) {
 		log.Printf("[ERROR] Token unauthorized")
 		return nil, errors.New("[ERROR] Token unauthorized")
 	}
-
 
 	return &s, nil
 }
