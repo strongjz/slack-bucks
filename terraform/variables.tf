@@ -5,3 +5,5 @@ variable "verificationToken" {}
 variable "oauthToken" {}
 
 variable "domain" {}
+
+variable "region" {}

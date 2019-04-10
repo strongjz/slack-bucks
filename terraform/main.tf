@@ -93,7 +93,7 @@ resource "aws_iam_role" "cloudwatch" {
 EOF
 }
 
-resource "aws_iam_role_policy" "cloudwatch" {
+resource "aws_iam_role_policy" "api_gateway_cloudwatch_global" {
   name = "default"
   role = "${aws_iam_role.cloudwatch.id}"
 
