@@ -1,9 +1,14 @@
 slack.token
 env.json
 
-secrets.tf
+secrets.tfvars
 
-.terraform
+*.zip
+plan.out
+
+terraform/.terraform
+terraform.tfstate
+terraform.tfstate.backup
 
 main
 

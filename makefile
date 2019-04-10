@@ -1,5 +1,6 @@
 OUTPUT = main # Referenced as Handler in template.yaml
 TEMPLATE = template.yaml
+S3_BUCKET = terraform-serverless-buck
 
 .PHONY: vendor
 vendor:
@@ -11,14 +12,15 @@ test:
 
 .PHONY: clean
 clean:
-	rm -f $(OUTPUT) $(PACKAGED_TEMPLATE)
+	rm -f $(OUTPUT)
 
 .PHONY: install
 install:
-	go get ./...
+	go get .
 
 main: ./main.go
 	go build -o $(OUTPUT) main.go
+
 
 # compile the code to run in Lambda (local or real)
 .PHONY: lambda
@@ -28,6 +30,12 @@ lambda:
 .PHONY: build
 build: clean lambda
 
+zip: build
+	zip $(VERSION)-buck.zip main
+
+upload: zip
+	echo "Uploading buck to ${S3_BUCKET}"
+	aws s3 cp $(VERSION)-buck.zip s3://$(S3_BUCKET)/$(VERSION)/buck.zip
 
 .PHONY: api
 api-debug: build
