@@ -1,5 +1,3 @@
-
-
 variable "app_version" {}
 
 variable "verificationToken" {}

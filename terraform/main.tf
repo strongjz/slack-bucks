@@ -2,7 +2,7 @@ resource "aws_lambda_function" "buck" {
   function_name = "Slackbuck"
 
   s3_bucket = "terraform-serverless-buck"
-  s3_key = "${var.app_version}/buck.zip"
+  s3_key    = "${var.app_version}/buck.zip"
 
   handler = "main"
   runtime = "go1.x"
@@ -14,11 +14,9 @@ resource "aws_lambda_function" "buck" {
   environment {
     variables = {
       verificationToken = "${var.verificationToken}"
-      oauthToken = "${var.oauthToken}"
+      oauthToken        = "${var.oauthToken}"
     }
   }
-
-
 }
 
 # IAM role which dictates what other AWS services the Lambda function
@@ -45,8 +43,8 @@ EOF
 
 # See also the following AWS managed policy: AWSLambdaBasicExecutionRole
 resource "aws_iam_policy" "lambda_logging" {
-  name = "lambda_logging"
-  path = "/"
+  name        = "lambda_logging"
+  path        = "/"
   description = "IAM policy for logging from a lambda"
 
   policy = <<EOF
@@ -67,7 +65,7 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role = "${aws_iam_role.lambda_exec.name}"
+  role       = "${aws_iam_role.lambda_exec.name}"
   policy_arn = "${aws_iam_policy.lambda_logging.arn}"
 }
 
@@ -120,8 +118,3 @@ resource "aws_iam_role_policy" "cloudwatch" {
 }
 EOF
 }
-
-
-
-
-
