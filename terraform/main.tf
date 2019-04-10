@@ -126,25 +126,34 @@ resource "aws_api_gateway_rest_api" "buck" {
   description = "Terraform Serverless Application buck"
 }
 
-resource "aws_api_gateway_resource" "proxy" {
+resource "aws_api_gateway_resource" "buck" {
   rest_api_id = "${aws_api_gateway_rest_api.buck.id}"
   parent_id = "${aws_api_gateway_rest_api.buck.root_resource_id}"
-  path_part = "buck"
+  path_part   = "{proxy+}"
 }
 
-resource "aws_api_gateway_method" "proxy" {
+resource "aws_api_gateway_method" "buck" {
   rest_api_id = "${aws_api_gateway_rest_api.buck.id}"
-  resource_id = "${aws_api_gateway_resource.proxy.id}"
-  http_method = "POST"
+  resource_id = "${aws_api_gateway_resource.buck.id}"
+
+  http_method   = "ANY"
   authorization = "NONE"
+  request_parameters = {
+    "method.request.path.proxy" = true
+  }
 }
 
 resource "aws_api_gateway_integration" "lambda" {
   rest_api_id = "${aws_api_gateway_rest_api.buck.id}"
-  resource_id = "${aws_api_gateway_method.proxy.resource_id}"
-  http_method = "${aws_api_gateway_method.proxy.http_method}"
+  resource_id = "${aws_api_gateway_method.buck.resource_id}"
+  http_method = "${aws_api_gateway_method.buck.http_method}"
 
-  integration_http_method = "POST"
+  integration_http_method = "ANY"
+
+  request_parameters =  {
+    "integration.request.path.proxy" = "method.request.path.proxy"
+  }
+
   type = "AWS_PROXY"
   uri = "${aws_lambda_function.buck.invoke_arn}"
 }

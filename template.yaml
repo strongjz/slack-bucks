@@ -22,6 +22,11 @@ Resources:
           Properties:
             Path: /buck
             Method: post
+        TestEvent:
+          Type: Api
+          Properties:
+            Path: /test
+            Method: get
 
 Outputs:
 

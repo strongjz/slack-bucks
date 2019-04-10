@@ -17,7 +17,7 @@ plan:
 	terraform plan -out=plan.out -var-file=secrets.tfvars
 
 apply: plan
-	terraform apply -var-file=secrets.tfvars
+	terraform apply -auto-approve -var-file=secrets.tfvars
 
 destroy:
 	terraform destroy -var-file=secrets.tfvars

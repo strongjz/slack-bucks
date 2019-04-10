@@ -62,9 +62,16 @@ func (b *Buck) Start() *gin.Engine {
 
 	b.router.POST("/buck", b.buckHandler)
 	b.router.POST("/echo", b.echoHandler)
+	b.router.GET("/test", b.testHandler)
 	b.router.POST("/", b.rootHandler)
 
 	return b.router
+}
+
+func (b *Buck) testHandler(c *gin.Context) {
+	log.Print("[INFO] Everything works")
+	c.JSON(http.StatusOK, gin.H{"MSG": "Everything works"})
+	return
 }
 
 func (b *Buck) echoHandler(c *gin.Context) {
