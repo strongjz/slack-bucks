@@ -26,7 +26,12 @@ Resources:
           Type: Api
           Properties:
             Path: /test
-            Method: get
+            Method: post
+        EchoEvent:
+          Type: Api
+          Properties:
+            Path: /echo
+            Method: post
 
 Outputs:
 

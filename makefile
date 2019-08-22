@@ -39,8 +39,8 @@ upload: zip
 
 .PHONY: api
 api-debug: build
-	sam local start-api --debug --env-vars env.json
+	sam local start-api --debug --env-vars env.json --profile contino-personal-sandbox
 
 .PHONY: api
 api: build
-	sam local start-api --env-vars env.json
+	sam local start-api --env-vars env.json --profile contino-personal-sandbox

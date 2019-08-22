@@ -17,9 +17,9 @@ func (b *Buck) sendACK(giverID string, giverUser string, amount float64, receive
 	var receiverMsg string
 
 	if amount == 0.00 {
-		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount, thumbsDownGif)
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Slack Bucks\n%s", giverUser, amount, thumbsDownGif)
 	} else {
-		receiverMsg = fmt.Sprintf("%s gave you %.2f Contino Bucks\n%s", giverUser, amount, moneyGifLink)
+		receiverMsg = fmt.Sprintf("%s gave you %.2f Slack Bucks\n%s", giverUser, amount, moneyGifLink)
 	}
 
 	err := b.sendSlackIM(receiverInfo.ID, receiverMsg)
@@ -29,7 +29,7 @@ func (b *Buck) sendACK(giverID string, giverUser string, amount float64, receive
 	}
 
 	//GIVER MESSAGE
-	giverMsg := fmt.Sprintf("You gave %s %.2f Contino Bucks\n", receiverInfo.Name, amount)
+	giverMsg := fmt.Sprintf("You gave %s %.2f Slack Bucks\n", receiverInfo.Name, amount)
 
 	err = b.sendSlackIM(giverID, giverMsg)
 	if err != nil {
@@ -55,7 +55,6 @@ func (b *Buck) findReceiver(text string) (*slack.User, error) {
 
 	//Get all the RECEIVERS information
 	receiverInfo, err := b.api.GetUserInfo(receiverID)
-
 	if err != nil {
 		log.Printf("[ERROR] User %s can not be found\n", receiverID)
 		return nil, err
@@ -81,7 +80,7 @@ func findAmount(text string) (float64, error) {
 	}
 
 	if amount <= -1 {
-		log.Printf("[INFO] Someone tried to take Contino Bucks %s\n", err.Error())
+		log.Printf("[INFO] Someone tried to take Slack Bucks %s\n", err.Error())
 		return -1, err
 	}
 

@@ -2,7 +2,7 @@
 Slack Bot for managing slack bucks
 
 
-Updateing the Slash Commands
+Updating the Slash Commands
 https://api.slack.com/apps/AH9MD9K38/slash-commands
 
 Helpful blogs

@@ -22,6 +22,7 @@ var (
 
 func init() {
 
+	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	verificationToken := os.Getenv("verificationToken")
 	oauthToken := os.Getenv("oauthToken")
 	db := os.Getenv("db")

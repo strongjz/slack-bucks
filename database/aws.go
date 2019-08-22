@@ -32,18 +32,20 @@ func New(endpoint string) *DB {
 	log.Printf("[INFO] Creating new DB connection to endpoint %s", endpoint)
 
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(endpoint)},
+		Region:   aws.String("us-west-2"),
+		Endpoint: aws.String(endpoint),
+	},
 	)
 	if err != nil {
+
 		log.Printf("[ERROR] Could not connect to Database: %s", err)
+		log.Println(err)
 		return nil
 	}
 
-	db := DB{
+	return &DB{
 		svc: dynamodb.New(sess),
 	}
-
-	return &db
 
 }
 
