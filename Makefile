@@ -1,8 +1,8 @@
 OUTPUT = golang_app_serverless # Referenced as Handler in template.yaml
 TEMPLATE = template.yaml
-S3_BUCKET = strongjz-golang_app_serverless
+S3_BUCKET = golang-example-serverless-app
 AWS_PROFILE ?= strongjz-tech
-VERSION ?= 0.0.3
+VERSION ?= 0.0.4
 
 .PHONY: vendor
 vendor:

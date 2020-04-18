@@ -1,7 +1,22 @@
+resource "aws_s3_bucket" "app" {
+  bucket = "golang-example-serverless-app"
+  acl    = "private"
+
+  tags = {
+    Name        = "golang_example_serverless_app"
+    Environment = "Dev"
+  }
+}
+
 resource "aws_lambda_function" "app" {
+
+  depends_on = [
+    aws_s3_bucket.app
+  ]
+
   function_name = "app"
 
-  s3_bucket = "terraform-app"
+  s3_bucket = "golang-example-serverless-app"
   s3_key    = "${var.app_version}/app.zip"
 
   handler = "main"
@@ -63,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = aws_iam_policy.lambda_logging.arn
 }
 
-resource "aws_api_gateway_account" "buck" {
+resource "aws_api_gateway_account" "app" {
   cloudwatch_role_arn = aws_iam_role.cloudwatch.arn
 }
 

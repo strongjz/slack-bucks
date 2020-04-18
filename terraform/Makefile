@@ -15,7 +15,7 @@ get:
 plan:
 	terraform plan -out=plan.out
 
-apply: plan
+apply:
 	terraform apply -auto-approve
 
 destroy:
