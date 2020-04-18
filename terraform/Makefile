@@ -13,10 +13,10 @@ get:
 	terraform get
 
 plan:
-	terraform plan -out=plan.out -var-file=secrets.tfvars
+	terraform plan -out=plan.out
 
 apply: plan
-	terraform apply -auto-approve -var-file=secrets.tfvars
+	terraform apply -auto-approve
 
 destroy:
-	terraform destroy -var-file=secrets.tfvars
+	terraform destroy

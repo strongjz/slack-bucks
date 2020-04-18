@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "app" {
   function_name = "app"
 
-  s3_bucket = "terraform-app-buck"
+  s3_bucket = "terraform-app"
   s3_key    = "${var.app_version}/app.zip"
 
   handler = "main"
@@ -9,14 +9,8 @@ resource "aws_lambda_function" "app" {
 
   timeout = "900"
 
-  role = "${aws_iam_role.lambda_exec.arn}"
+  role = aws_iam_role.lambda_exec.arn
 
-  environment {
-    variables = {
-      verificationToken = "${var.verificationToken}"
-      oauthToken        = "${var.oauthToken}"
-    }
-  }
 }
 
 # IAM role which dictates what other AWS services the Lambda function
@@ -65,12 +59,12 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role       = "${aws_iam_role.lambda_exec.name}"
-  policy_arn = "${aws_iam_policy.lambda_logging.arn}"
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.lambda_logging.arn
 }
 
 resource "aws_api_gateway_account" "buck" {
-  cloudwatch_role_arn = "${aws_iam_role.cloudwatch.arn}"
+  cloudwatch_role_arn = aws_iam_role.cloudwatch.arn
 }
 
 resource "aws_iam_role" "cloudwatch" {
@@ -95,7 +89,7 @@ EOF
 
 resource "aws_iam_role_policy" "api_gateway_cloudwatch_global" {
   name = "default"
-  role = "${aws_iam_role.cloudwatch.id}"
+  role = aws_iam_role.cloudwatch.id
 
   policy = <<EOF
 {

@@ -5,7 +5,7 @@ Transform: AWS::Serverless-2016-10-31
 
 Resources:
 
-  BuckFunction:
+  AppFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: golang_app_serverless
