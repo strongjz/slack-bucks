@@ -28,8 +28,6 @@ resource "aws_api_gateway_integration" "lambda" {
   http_method = aws_api_gateway_method.app.http_method
   timeout_milliseconds = 29000
 
-  credentials = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/apigateway_exe"
-
   integration_http_method = "POST"
 
   type = "AWS_PROXY"
@@ -49,15 +47,12 @@ resource "aws_api_gateway_integration" "lambda_root" {
   resource_id = aws_api_gateway_method.proxy_root.resource_id
   http_method = aws_api_gateway_method.proxy_root.http_method
 
-  credentials = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/apigateway_exe"
+  credentials = aws_lambda_permission.apigw_app.source_arn
 
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.app.invoke_arn
 }
-
-data "aws_caller_identity" "current" {}
-
 
 resource "aws_lambda_permission" "apigw_app" {
   statement_id  = "AllowAPIGatewayInvoke"
@@ -70,6 +65,8 @@ resource "aws_lambda_permission" "apigw_app" {
 
   source_arn = "${aws_api_gateway_rest_api.app.execution_arn}/*/*/*"
 }
+
+
 
 resource "aws_api_gateway_deployment" "app" {
   depends_on = [
