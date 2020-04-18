@@ -1,5 +1,6 @@
 slack.token
 env.json
+golang_app_serverless
 
 secrets.tfvars
 

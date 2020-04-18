@@ -1,8 +1,8 @@
-resource "aws_lambda_function" "buck" {
-  function_name = "Slackbuck"
+resource "aws_lambda_function" "app" {
+  function_name = "app"
 
-  s3_bucket = "terraform-serverless-buck"
-  s3_key    = "${var.app_version}/buck.zip"
+  s3_bucket = "terraform-app-buck"
+  s3_key    = "${var.app_version}/app.zip"
 
   handler = "main"
   runtime = "go1.x"
@@ -22,7 +22,7 @@ resource "aws_lambda_function" "buck" {
 # IAM role which dictates what other AWS services the Lambda function
 # may access.
 resource "aws_iam_role" "lambda_exec" {
-  name = "serverless_buck_lambda"
+  name = "golang_app_example"
 
   assume_role_policy = <<EOF
 {
@@ -43,7 +43,7 @@ EOF
 
 # See also the following AWS managed policy: AWSLambdaBasicExecutionRole
 resource "aws_iam_policy" "lambda_logging" {
-  name        = "lambda_logging"
+  name        = "app_lambda_logging"
   path        = "/"
   description = "IAM policy for logging from a lambda"
 

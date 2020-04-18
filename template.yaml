@@ -8,30 +8,27 @@ Resources:
   BuckFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: main
+      Handler: golang_app_serverless
       Runtime: go1.x
       Environment:
         Variables:
-          verificationToken: VALUE
-          oauthToken: VALUE
           port: VALUE
-          db: VALUE
       Events:
-        PostEvent:
+        RootEvent:
           Type: Api
           Properties:
-            Path: /buck
-            Method: post
-        TestEvent:
+            Path: /
+            Method: get
+        PingEvent:
           Type: Api
           Properties:
-            Path: /test
-            Method: post
-        EchoEvent:
+            Path: /ping
+            Method: get
+        ExternalEvent:
           Type: Api
           Properties:
-            Path: /echo
-            Method: post
+            Path: /external
+            Method: get
 
 Outputs:
 

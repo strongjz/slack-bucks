@@ -1,5 +1,5 @@
-app_version = "1.0.9"
+app_version = "0.0.4"
 
-domain = "continobucks.net"
+domain = "strongjz.guru"
 
 region = "us-west-2"

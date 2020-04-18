@@ -1,42 +1,25 @@
 package main
 
 import (
-	"bytes"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/strongjz/slack-bucks/buck"
+	"github.com/strongjz/go_example_app/app"
 	"log"
-	"os"
 )
 
 var (
-	verificationToken string
-	oauthToken        string
-	db                string
-	buf               bytes.Buffer
-	debug             bool
 	ginLambda         *ginadapter.GinLambda
 )
 
 func init() {
 
-	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
-	verificationToken := os.Getenv("verificationToken")
-	oauthToken := os.Getenv("oauthToken")
-	db := os.Getenv("db")
+	log.Printf("[INFO] Main: Starting")
 
-	log.Printf("[INFO] Verification Token: %s", verificationToken)
-	log.Printf("[INFO] OAUTH Token: %s", oauthToken)
-	log.Printf("[INFO] DB Endpoint: %s", db)
-	log.Printf("[INFO] Main: Creating New Slack Bucks")
+	app := app.New()
 
-	c := buck.New(db, verificationToken, oauthToken)
-
-	log.Print("[INFO] Main: Starting Slack Bucks")
-
-	ginLambda = ginadapter.New(c.Start())
+	ginLambda = ginadapter.New(app.Engine())
 
 }
 
